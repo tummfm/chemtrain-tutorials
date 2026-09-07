@@ -1,0 +1,7 @@
+input/*
+!input/.gitkeep
+!input/bcc.lmpdat
+!input/liquid.lmpdat
+!input/phase_boxes.toml
+output/*
+!output/.gitkeep

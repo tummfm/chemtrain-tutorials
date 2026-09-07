@@ -1,0 +1,24 @@
+software/
+external/
+venv/
+checkpoints/
+build/
+cmake-build-*/
+_skbuild/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+log.lammps
+*.log
+output.pdf
+*.html
+
+# Model parameters and deployment bundles are obtained locally, not published.
+*.ptb
+*.pkl
+*.ckpt
+*.model
+*.safetensors

@@ -1,0 +1,11 @@
+[interface_pinning]
+q_solid = 27384.469714843799
+q_liquid = 5438.5270869140604
+center = 16411.4984008789
+production_center = 21897.984057861398
+production_solid_fraction = 0.75
+delta_q = 21945.9426279297
+crystal_planes = 64
+kappa = 1.4224921986290501e-06
+temperature = 1941
+pressure_gpa = 0

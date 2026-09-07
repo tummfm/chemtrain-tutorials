@@ -1,0 +1,95 @@
+# Prepare cubic BCC and liquid boxes for the later DiffTRe setup. ------------
+variable timestep            equal 0.004
+variable equil_steps         equal 2500
+variable melt_steps          equal 2500
+variable liquid_sample_steps equal 2500
+variable lattice_parameter   equal 3.3246088723444838
+variable cell_repeats        equal 7
+variable mass_ti             equal 47.867
+variable pressure_bar        equal ${pressure_gpa}*10000
+variable temp_damp           equal 100
+variable press_damp          equal 250
+
+# A 7 x 7 x 7 BCC supercell contains 686 atoms and is exactly cubic. ---------
+clear
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+newton          on
+package         kokkos atom/map no
+lattice         bcc ${lattice_parameter}
+region          box block 0 ${cell_repeats} 0 ${cell_repeats} 0 ${cell_repeats} units lattice
+create_box      90 box
+create_atoms    22 box
+mass            * ${mass_ti}
+
+neighbor        2.0 bin
+neigh_modify    delay 0 every 1 check yes
+timestep        ${timestep}
+comm_modify     mode single cutoff 14.0
+
+pair_style      chemtrain cuda 0.65 &
+                comm on &
+                capacity/atom 1.1 &
+                capacity/edge 1.15
+pair_coeff      * * ${mace_model}
+
+thermo          100
+thermo_style    custom step temp press vol lx ly lz
+thermo_modify   format float %20.16g
+
+# Record the complete BCC-to-liquid preparation trajectory. -----------------
+dump            phase_trajectory all custom 100 ${trajectory_output} id type x y z
+dump_modify     phase_trajectory sort id
+
+# Equilibrate the BCC box at the target state before writing it. --------------
+velocity        all create ${temperature} 912345 mom yes dist gaussian
+velocity        all zero linear
+fix             bcc_eq all npt temp ${temperature} ${temperature} $(v_temp_damp*dt) &
+                iso ${pressure_bar} ${pressure_bar} $(v_press_damp*dt)
+fix             momentum all momentum 100 linear 1 1 1
+run             ${equil_steps}
+unfix           bcc_eq
+write_data      ${bcc_output}
+
+# Melt that same cubic BCC cell, then equilibrate and sample the liquid. ------
+velocity        all create ${melt_temperature} 912345 mom yes dist gaussian
+velocity        all zero linear
+fix             melt all npt temp ${melt_temperature} ${melt_temperature} $(v_temp_damp*dt) &
+                iso ${pressure_bar} ${pressure_bar} $(v_press_damp*dt)
+run             ${melt_steps}
+unfix           melt
+
+# Cooling is instantaneous: target-state equilibration lasts 10 ps. ----------
+fix             liquid_eq all npt temp ${temperature} ${temperature} $(v_temp_damp*dt) &
+                iso ${pressure_bar} ${pressure_bar} $(v_press_damp*dt)
+run             ${equil_steps}
+unfix           liquid_eq
+
+variable        current_volume equal vol
+fix             liquid_sample all npt temp ${temperature} ${temperature} $(v_temp_damp*dt) &
+                iso ${pressure_bar} ${pressure_bar} $(v_press_damp*dt)
+fix             liquid_volume all ave/time 100 25 ${liquid_sample_steps} &
+                v_current_volume ave one
+run             ${liquid_sample_steps}
+
+variable        mean_volume equal $(f_liquid_volume:%.17g)
+variable        volume_scale equal (v_mean_volume/vol)^(1.0/3.0)
+unfix           liquid_volume
+unfix           liquid_sample
+unfix           momentum
+
+change_box      all x scale ${volume_scale} y scale ${volume_scale} &
+                z scale ${volume_scale} remap units box
+variable        liquid_density equal count(all)/vol
+write_data      ${liquid_output}
+undump          phase_trajectory
+
+print           "[phase_boxes]" file ${metadata_output} screen no
+print           "temperature = ${temperature}" append ${metadata_output} screen no
+print           "pressure_gpa = ${pressure_gpa}" append ${metadata_output} screen no
+print           "atoms = $(count(all))" append ${metadata_output} screen no
+print           "liquid_volume_angstrom3 = $(vol:%.17g)" append ${metadata_output} screen no
+print           "liquid_number_density_angstrom3 = $(v_liquid_density:%.17g)" &
+                append ${metadata_output} screen no

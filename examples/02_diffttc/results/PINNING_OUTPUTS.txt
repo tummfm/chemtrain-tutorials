@@ -1,0 +1,5 @@
+interface_equilibration.txt
+equilibration.lammpstrj
+interface.txt
+interface.lammpstrj
+interface_final.lmpdat

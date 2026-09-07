@@ -1,0 +1,78 @@
+
+# Run interface pinning from the calibrated two-phase configuration.
+
+# run.py supplies values measured by the preparation stage from TOML.
+# Run controls ---------------------------------------------------------------
+variable timestep       equal 0.004
+variable timeEq         equal 5000
+variable timeProd       equal 25000
+variable mass           equal 47.867
+variable tempMelt       equal ${temperature}
+variable defPress       equal ${pressure_gpa}
+variable kappa          equal ${kappa_value}
+variable folderpath     string ${output_directory}
+
+variable press          equal $(v_defPress*10000)
+variable tempDamp       equal 100
+variable pressDamp      equal 250
+
+# Load the prepared atoms and calibrated order-parameter center. ------------
+timer           loop
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+newton          on
+package         kokkos atom/map no
+read_data       ${input_data}
+mass            * ${mass}
+
+neighbor        2.0 bin
+neigh_modify    delay 0 every 1 check yes
+timestep        ${timestep}
+comm_modify     mode single cutoff 14.0
+
+# Equilibrate and sample with the calibrated interface restraint active.
+pair_style      chemtrain cuda 0.65 &
+                comm on &
+                capacity/atom 1.1 &
+                capacity/edge 1.15 &
+                models main 1 order 1 &
+                global/input order steinhardt_kappa ${kappa} &
+                global/input order steinhardt_center ${pinning_center} &
+                output order steinhardt_order
+pair_coeff      * * ${mace_model} ${order_model}
+compute         Q all chemtrain/output/kk order steinhardt_order
+
+variable        dx equal lx
+variable        dy equal ly
+variable        dz equal lz
+variable        normalPressure equal pxx
+
+thermo          100
+thermo_style    custom step temp press pxx lx ly lz c_Q
+thermo_modify   format float %20.16g
+
+# The preparation fixed the transverse dimensions; only x is barostatted.
+fix             ensemble all npt temp ${tempMelt} ${tempMelt} $(v_tempDamp*dt) &
+                  x ${press} ${press} $(v_pressDamp*dt)
+fix             momentum all momentum 100 linear 1 1 1
+fix             eq_out all ave/time 1 1 25 v_dx v_dy v_dz v_normalPressure c_Q &
+                  title1 "Biased interface equilibration" &
+                  title3 "TimeStep Lx Ly Lz Pxx Q" &
+                  format " %20.16g" &
+                  file ${folderpath}/interface_equilibration.txt
+dump            trajectory all atom 100 ${folderpath}/equilibration.lammpstrj
+run             ${timeEq}
+undump          trajectory
+unfix           eq_out
+
+fix             prod_out all ave/time 1 1 25 v_dx v_dy v_dz v_normalPressure c_Q &
+                  title1 "Biased interface production" &
+                  title3 "TimeStep Lx Ly Lz Pxx Q" &
+                  format " %20.16g" &
+                  file ${folderpath}/interface.txt
+dump            trajectory all atom 100 ${folderpath}/interface.lammpstrj
+run             ${timeProd}
+
+write_data      ${folderpath}/interface_final.lmpdat

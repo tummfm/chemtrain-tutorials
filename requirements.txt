@@ -1,0 +1,8 @@
+chemtrain[all,cuda12] @ git+https://github.com/tummfm/chemtrain@b256dc920aade9c947601341fb4390983abb3500
+git+https://github.com/tummfm/mace-jax.git@717a2537946146a1671cd187b9841088d5e7f6a2
+mace-torch
+scikit-build-core
+cmake
+ninja
+nanobind
+notebook

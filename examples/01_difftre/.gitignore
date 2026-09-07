@@ -1,0 +1,8 @@
+__pycache__/
+
+# Reproducible inputs and intermediate training state; keep generated analyses.
+Checkpoints/
+data/*.csv
+data/forces.npy
+data/positions.npy
+plots/

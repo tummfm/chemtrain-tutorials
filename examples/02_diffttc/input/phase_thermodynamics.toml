@@ -1,0 +1,21 @@
+[metadata]
+temperature_k = 1941
+pressure_gpa = 0
+energy_unit = 'eV/atom'
+volume_unit = 'angstrom^3/atom'
+pressure_unit = 'bar'
+barostat_direction = 'x'
+[solid]
+potential_energy_ev_per_atom = -12.571593480053799
+total_energy_ev_per_atom = -12.321207011780199
+enthalpy_ev_per_atom = -12.3215306186968
+volume_angstrom3_per_atom = 18.3684878012178
+temperature_k = 1937.5470506421
+normal_pressure_bar = -24.3208052387624
+[liquid]
+potential_energy_ev_per_atom = -12.4667929442492
+total_energy_ev_per_atom = -12.216607480791399
+enthalpy_ev_per_atom = -12.216482052930401
+volume_angstrom3_per_atom = 18.635076092083501
+temperature_k = 1935.9916299731501
+normal_pressure_bar = 14.304684881748001

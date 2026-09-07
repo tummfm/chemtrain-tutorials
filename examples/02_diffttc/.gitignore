@@ -1,0 +1,5 @@
+preparation_work/
+*.ptb
+results/*
+!results/.gitkeep
+!results/PINNING_OUTPUTS.txt
